@@ -1,0 +1,5 @@
+class: TranslationBundle
+fields:
+  locale: String
+  version: int
+  translations: Map<String, String>

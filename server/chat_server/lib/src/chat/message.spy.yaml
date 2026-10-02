@@ -1,0 +1,17 @@
+class: MessageModel
+table: message
+fields:
+  conversationId: int
+  senderId: int
+  recipientId: int
+  content: String
+  attachmentUrls: List<String>?
+  status: String
+  sentAt: DateTime
+  deliveredAt: DateTime?
+  readAt: DateTime?
+indexes:
+  message_conversation_idx:
+    fields: conversationId
+  message_recipient_idx:
+    fields: recipientId, status

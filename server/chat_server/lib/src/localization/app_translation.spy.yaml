@@ -1,0 +1,12 @@
+class: AppTranslation
+table: app_translation
+fields:
+  locale: String
+  key: String
+  value: String
+  version: int
+  updatedAt: DateTime
+indexes:
+  app_translation_locale_key_idx:
+    fields: locale, key
+    unique: true

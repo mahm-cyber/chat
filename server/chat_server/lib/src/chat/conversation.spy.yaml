@@ -1,0 +1,14 @@
+class: ConversationModel
+table: conversation
+fields:
+  user1Id: int
+  user2Id: int
+  lastMessageText: String?
+  lastMessageSentAt: DateTime?
+  unreadCountUser1: int
+  unreadCountUser2: int
+  createdAt: DateTime
+  updatedAt: DateTime
+indexes:
+  conversation_users_idx:
+    fields: user1Id, user2Id

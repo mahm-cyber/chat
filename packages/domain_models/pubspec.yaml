@@ -6,6 +6,8 @@ publish_to: 'none'
 environment:
   sdk: '>=3.13.0 <4.0.0'
 
+resolution: workspace
+
 dependencies:
   equatable: ^2.0.7
   meta: ^1.16.0
