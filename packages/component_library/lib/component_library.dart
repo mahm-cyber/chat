@@ -1,0 +1,10 @@
+export 'src/components/chat_avatar.dart';
+export 'src/components/chat_bubble.dart';
+export 'src/components/chat_icon.dart';
+export 'src/components/chat_tappable.dart';
+export 'src/components/chat_text.dart';
+export 'src/localization/chat_localizations.dart';
+export 'src/theme/chat_palette.dart';
+export 'src/theme/chat_spacing.dart';
+export 'src/theme/chat_theme_data.dart';
+export 'src/theme/theme_controller.dart';

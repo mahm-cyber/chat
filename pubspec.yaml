@@ -7,14 +7,20 @@ environment:
   sdk: ">=3.13.0 <4.0.0"
 
 workspace:
+  - packages/component_library
   - packages/domain_models
   - packages/key_value_storage
   - packages/repositories/auth_repository
   - packages/repositories/chat_repository
   - packages/repositories/localization_repository
   - packages/repositories/user_repository
+  - packages/web_component_library
   - server/chat_server
   - server/chat_client
+
+dependencies:
+  flutter:
+    sdk: flutter
 
 dev_dependencies:
   flutter_lints: ^6.0.0

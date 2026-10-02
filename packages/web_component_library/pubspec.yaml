@@ -1,0 +1,20 @@
+name: web_component_library
+description: Jaspr and Tailwind CSS component library for Chat App Web.
+version: 0.1.0
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.13.0 <4.0.0'
+
+resolution: workspace
+
+dependencies:
+  jaspr: ^0.23.0
+  domain_models:
+    path: ../domain_models
+  localization_repository:
+    path: ../repositories/localization_repository
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.25.0
