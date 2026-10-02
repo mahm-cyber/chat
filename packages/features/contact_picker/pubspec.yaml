@@ -1,0 +1,25 @@
+name: contact_picker
+description: "Contact picker and user search feature package"
+publish_to: 'none'
+version: 0.1.0
+resolution: workspace
+
+environment:
+  sdk: ">=3.13.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  component_library:
+    path: ../../component_library
+  domain_models:
+    path: ../../domain_models
+  equatable: ^2.0.5
+  user_repository:
+    path: ../../repositories/user_repository
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.0.4

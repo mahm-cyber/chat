@@ -11,6 +11,9 @@ class User extends Equatable {
   final bool notificationsEnabled;
   final DateTime? lastSeenAt;
   final DateTime createdAt;
+  final bool isOnline;
+
+  String? get avatarUrl => photoUrl;
 
   const User({
     required this.id,
@@ -21,6 +24,7 @@ class User extends Equatable {
     this.notificationsEnabled = true,
     this.lastSeenAt,
     required this.createdAt,
+    this.isOnline = false,
   });
 
   User copyWith({

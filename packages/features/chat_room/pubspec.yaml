@@ -1,0 +1,27 @@
+name: chat_room
+description: "Active 1-on-1 chat room feature package"
+publish_to: 'none'
+version: 0.1.0
+resolution: workspace
+
+environment:
+  sdk: ">=3.13.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  component_library:
+    path: ../../component_library
+  domain_models:
+    path: ../../domain_models
+  equatable: ^2.0.5
+  chat_repository:
+    path: ../../repositories/chat_repository
+  user_repository:
+    path: ../../repositories/user_repository
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.0.4

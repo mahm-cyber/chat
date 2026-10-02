@@ -10,15 +10,18 @@ class ChatAvatar extends StatelessWidget {
   final bool showOnlineIndicator;
   final Key? testId;
 
-  const ChatAvatar({
-    required this.name,
-    this.imageUrl,
+  ChatAvatar({
+    String? name,
+    String? displayName,
+    String? imageUrl,
+    String? avatarUrl,
     this.size = 44.0,
     this.isOnline = false,
     this.showOnlineIndicator = false,
     this.testId,
     super.key,
-  });
+  })  : name = name ?? displayName ?? '',
+        imageUrl = imageUrl ?? avatarUrl;
 
   String _getInitials(String input) {
     final trimmed = input.trim();

@@ -60,10 +60,19 @@ class AuthRepository implements IAuthRepository {
   }
 
   @override
-  Future<void> sendOtpCode(PhoneNumber phoneNumber) async {
+  Future<String> sendOtpCode(PhoneNumber phoneNumber) async {
     if (otpSender != null) {
       await otpSender!(phoneNumber.value);
     }
+    return 'verification_${phoneNumber.value}';
+  }
+
+  @override
+  Future<User> verifySmsCode({
+    required String verificationId,
+    required String smsCode,
+  }) async {
+    return verifyFirebaseIdToken('$verificationId:$smsCode');
   }
 
   @override

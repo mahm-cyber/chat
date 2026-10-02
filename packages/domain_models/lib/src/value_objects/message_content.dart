@@ -10,6 +10,11 @@ class MessageContent extends Equatable {
     required this.attachments,
   });
 
+  factory MessageContent({
+    required String text,
+    List<String> attachments,
+  }) = MessageContent.create;
+
   factory MessageContent.create({
     required String text,
     List<String> attachments = const [],

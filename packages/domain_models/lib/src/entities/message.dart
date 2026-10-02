@@ -21,6 +21,8 @@ class Message extends Equatable {
   final DateTime? deliveredAt;
   final DateTime? readAt;
 
+  DateTime get createdAt => sentAt;
+
   const Message({
     required this.id,
     required this.conversationId,

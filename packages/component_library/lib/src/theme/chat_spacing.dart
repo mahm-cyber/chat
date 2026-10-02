@@ -9,6 +9,14 @@ class ChatSpacing {
   static const double xxl = 24.0;
   static const double xxxl = 32.0;
 
+  static const double xSmall = xs;
+  static const double small = sm;
+  static const double medium = md;
+  static const double large = lg;
+  static const double xLarge = xl;
+  static const double xxLarge = xxl;
+  static const double xxxLarge = xxxl;
+
   static const double radiusXs = 4.0;
   static const double radiusSm = 8.0;
   static const double radiusMd = 12.0;

@@ -1,0 +1,25 @@
+name: auth
+description: "Phone authentication and SMS OTP verification feature package"
+publish_to: 'none'
+version: 0.1.0
+resolution: workspace
+
+environment:
+  sdk: ">=3.13.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  component_library:
+    path: ../../component_library
+  domain_models:
+    path: ../../domain_models
+  equatable: ^2.0.5
+  auth_repository:
+    path: ../../repositories/auth_repository
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.0.4

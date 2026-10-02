@@ -15,6 +15,12 @@ workspace:
   - packages/repositories/localization_repository
   - packages/repositories/user_repository
   - packages/web_component_library
+  - packages/features/auth
+  - packages/features/conversation_list
+  - packages/features/chat_room
+  - packages/features/user_profile
+  - packages/features/settings
+  - packages/features/contact_picker
   - server/chat_server
   - server/chat_client
 

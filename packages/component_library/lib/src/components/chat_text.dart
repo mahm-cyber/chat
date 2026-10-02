@@ -8,6 +8,9 @@ enum ChatTextVariant {
   bodyLarge,
   bodyMedium,
   bodySmall,
+  labelLarge,
+  labelMedium,
+  labelSmall,
   caption,
 }
 
@@ -161,6 +164,18 @@ class ChatText extends StatelessWidget {
       case ChatTextVariant.bodySmall:
         base = theme.textTheme.bodySmall ??
             const TextStyle(fontSize: 12, fontWeight: FontWeight.normal);
+        break;
+      case ChatTextVariant.labelLarge:
+        base = theme.textTheme.labelLarge ??
+            const TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
+        break;
+      case ChatTextVariant.labelMedium:
+        base = theme.textTheme.labelMedium ??
+            const TextStyle(fontSize: 12, fontWeight: FontWeight.w600);
+        break;
+      case ChatTextVariant.labelSmall:
+        base = theme.textTheme.labelSmall ??
+            const TextStyle(fontSize: 11, fontWeight: FontWeight.w500);
         break;
       case ChatTextVariant.caption:
         base = (theme.textTheme.bodySmall ??

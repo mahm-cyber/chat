@@ -41,5 +41,6 @@ class ChatPalette {
   // Semantic
   static const Color emerald500 = Color(0xFF10B981); // Online, Delivered/Read
   static const Color rose500 = Color(0xFFF43F5E);    // Error, Delete, Failed
+  static const Color coralRose = rose500;
   static const Color amber500 = Color(0xFFF59E0B);   // Warning
 }
