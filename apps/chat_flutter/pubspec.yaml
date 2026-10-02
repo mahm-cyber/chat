@@ -1,0 +1,58 @@
+name: chat_flutter
+description: "Cross-platform Chat Application for iOS, Android, and macOS"
+publish_to: 'none'
+version: 1.0.0+1
+resolution: workspace
+
+environment:
+  sdk: ">=3.13.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_riverpod: ^2.6.1
+  go_router: ^14.8.1
+
+  # Design system & Domain
+  component_library:
+    path: ../../packages/component_library
+  domain_models:
+    path: ../../packages/domain_models
+  key_value_storage:
+    path: ../../packages/key_value_storage
+  
+  # Repositories & Server client
+  auth_repository:
+    path: ../../packages/repositories/auth_repository
+  chat_repository:
+    path: ../../packages/repositories/chat_repository
+  user_repository:
+    path: ../../packages/repositories/user_repository
+  localization_repository:
+    path: ../../packages/repositories/localization_repository
+  chat_client:
+    path: ../../server/chat_client
+
+  # Feature packages
+  auth:
+    path: ../../packages/features/auth
+  conversation_list:
+    path: ../../packages/features/conversation_list
+  chat_room:
+    path: ../../packages/features/chat_room
+  user_profile:
+    path: ../../packages/features/user_profile
+  settings:
+    path: ../../packages/features/settings
+  contact_picker:
+    path: ../../packages/features/contact_picker
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true

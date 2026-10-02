@@ -14,6 +14,7 @@ class LocalizationRepository implements ILocalizationRepository {
   String _currentLocale = 'en';
 
   String get currentLocale => _currentLocale;
+  Map<String, String> get currentTranslations => Map.unmodifiable(_currentTranslations);
 
   LocalizationRepository({
     required this.client,

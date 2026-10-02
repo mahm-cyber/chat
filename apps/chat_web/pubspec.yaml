@@ -1,0 +1,25 @@
+name: chat_web
+description: Jaspr and Tailwind CSS Web client for Chat Application
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ">=3.13.0 <4.0.0"
+
+dependencies:
+  jaspr: ^0.23.5
+  jaspr_router: ^0.9.0
+  domain_models:
+    path: ../../packages/domain_models
+  web_component_library:
+    path: ../../packages/web_component_library
+
+dev_dependencies:
+  build_runner: ^2.15.1
+  build_web_compilers: ^4.8.5
+  jaspr_builder: ^0.23.5
+  lints: ^5.0.0
+  test: ^1.25.0
+
+jaspr:
+  mode: client

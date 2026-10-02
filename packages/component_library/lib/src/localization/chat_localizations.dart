@@ -1,13 +1,13 @@
+import 'package:domain_models/domain_models.dart';
 import 'package:flutter/widgets.dart';
-import 'package:localization_repository/localization_repository.dart';
 
 class ChatLocalizationsScope extends InheritedWidget {
-  final LocalizationRepository repository;
+  final ILocalizationRepository? repository;
   final Map<String, String> translations;
 
   const ChatLocalizationsScope({
-    required this.repository,
-    required this.translations,
+    this.repository,
+    this.translations = const {},
     required super.child,
     super.key,
   });
@@ -33,6 +33,15 @@ extension ChatLocalizationExtension on BuildContext {
   String tr(String key, {Map<String, String>? parameters}) {
     final scope = ChatLocalizationsScope.maybeOf(this);
     if (scope == null) return key;
-    return scope.repository.translate(key, parameters: parameters);
+    if (scope.repository != null) {
+      return scope.repository!.translate(key, parameters: parameters);
+    }
+    String text = scope.translations[key] ?? key;
+    if (parameters != null) {
+      parameters.forEach((paramKey, value) {
+        text = text.replaceAll('{$paramKey}', value);
+      });
+    }
+    return text;
   }
 }
