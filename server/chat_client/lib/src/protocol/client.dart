@@ -11,8 +11,12 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _ida;
+import 'package:chat_client/src/protocol/chat/chat_event.dart' as _irlig1jj;
+import 'package:chat_client/src/protocol/chat/conversation.dart' as _ibx6f4yw;
+import 'package:chat_client/src/protocol/chat/message.dart' as _i0cjlmz7;
 import 'package:chat_client/src/protocol/localization/translation_bundle.dart'
     as _iprbig6p;
+import 'package:chat_client/src/protocol/users/app_user.dart' as _izmwkj1b;
 import 'package:http/http.dart' as _i85jenna;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _iacc;
@@ -20,6 +24,35 @@ import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
     as _iaic;
 import 'package:serverpod_client/serverpod_client.dart' as _isc;
 import 'protocol.dart' as _il2as5qe;
+
+/// {@category Endpoint}
+class EndpointAuth extends _isc.EndpointRef {
+  EndpointAuth(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'auth';
+
+  /// Authenticates or registers a user via verified Firebase phone credentials
+  _ida.Future<_izmwkj1b.AppUser> authenticateWithFirebasePhone({
+    required String firebaseUid,
+    required String phoneNumber,
+    String? displayName,
+  }) => caller.callServerEndpoint<_izmwkj1b.AppUser>(
+    'auth',
+    'authenticateWithFirebasePhone',
+    {
+      'firebaseUid': firebaseUid,
+      'phoneNumber': phoneNumber,
+      'displayName': displayName,
+    },
+  );
+
+  _ida.Future<bool> signOut() => caller.callServerEndpoint<bool>(
+    'auth',
+    'signOut',
+    {},
+  );
+}
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
@@ -247,6 +280,124 @@ class EndpointJwtRefresh extends _iacc.EndpointRefreshJwtTokens {
 }
 
 /// {@category Endpoint}
+class EndpointChat extends _isc.EndpointRef {
+  EndpointChat(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'chat';
+
+  /// Fetches an existing 1-on-1 conversation or creates a new one
+  _ida.Future<_ibx6f4yw.ConversationModel> getOrCreateConversation({
+    required int currentUserId,
+    required int recipientId,
+  }) => caller.callServerEndpoint<_ibx6f4yw.ConversationModel>(
+    'chat',
+    'getOrCreateConversation',
+    {
+      'currentUserId': currentUserId,
+      'recipientId': recipientId,
+    },
+  );
+
+  /// Lists all conversations where the user is a participant
+  _ida.Future<List<_ibx6f4yw.ConversationModel>> getConversations(int userId) =>
+      caller.callServerEndpoint<List<_ibx6f4yw.ConversationModel>>(
+        'chat',
+        'getConversations',
+        {'userId': userId},
+      );
+
+  /// Fetches historical messages for a given conversation
+  _ida.Future<List<_i0cjlmz7.MessageModel>> getMessages({
+    required int conversationId,
+    int? limit,
+  }) => caller.callServerEndpoint<List<_i0cjlmz7.MessageModel>>(
+    'chat',
+    'getMessages',
+    {
+      'conversationId': conversationId,
+      'limit': limit,
+    },
+  );
+
+  /// Sends a message and broadcasts it in real-time over the conversation channel
+  _ida.Future<_i0cjlmz7.MessageModel> sendMessage({
+    required int conversationId,
+    required int senderId,
+    required int recipientId,
+    required String content,
+    List<String>? attachmentUrls,
+  }) => caller.callServerEndpoint<_i0cjlmz7.MessageModel>(
+    'chat',
+    'sendMessage',
+    {
+      'conversationId': conversationId,
+      'senderId': senderId,
+      'recipientId': recipientId,
+      'content': content,
+      'attachmentUrls': attachmentUrls,
+    },
+  );
+
+  /// Marks a message as delivered
+  _ida.Future<void> markMessageDelivered({
+    required int messageId,
+    required int conversationId,
+    required int senderId,
+  }) => caller.callServerEndpoint<void>(
+    'chat',
+    'markMessageDelivered',
+    {
+      'messageId': messageId,
+      'conversationId': conversationId,
+      'senderId': senderId,
+    },
+  );
+
+  /// Marks a message as read
+  _ida.Future<void> markMessageRead({
+    required int messageId,
+    required int conversationId,
+    required int senderId,
+  }) => caller.callServerEndpoint<void>(
+    'chat',
+    'markMessageRead',
+    {
+      'messageId': messageId,
+      'conversationId': conversationId,
+      'senderId': senderId,
+    },
+  );
+
+  /// Broadcasts typing indicator event
+  _ida.Future<void> sendTypingEvent({
+    required int conversationId,
+    required int senderId,
+    required bool isTyping,
+  }) => caller.callServerEndpoint<void>(
+    'chat',
+    'sendTypingEvent',
+    {
+      'conversationId': conversationId,
+      'senderId': senderId,
+      'isTyping': isTyping,
+    },
+  );
+
+  /// Real-time stream of incoming messages, delivery updates, and typing events
+  _ida.Stream<_irlig1jj.ChatEvent> watchConversation(int conversationId) =>
+      caller.callStreamingServerEndpoint<
+        _ida.Stream<_irlig1jj.ChatEvent>,
+        _irlig1jj.ChatEvent
+      >(
+        'chat',
+        'watchConversation',
+        {'conversationId': conversationId},
+        {},
+      );
+}
+
+/// {@category Endpoint}
 class EndpointLocalization extends _isc.EndpointRef {
   EndpointLocalization(_isc.EndpointCaller caller) : super(caller);
 
@@ -265,6 +416,85 @@ class EndpointLocalization extends _isc.EndpointRef {
       'clientVersion': clientVersion,
     },
   );
+}
+
+/// {@category Endpoint}
+class EndpointUser extends _isc.EndpointRef {
+  EndpointUser(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'user';
+
+  /// Fetches a user profile by ID
+  _ida.Future<_izmwkj1b.AppUser?> getProfile(int userId) =>
+      caller.callServerEndpoint<_izmwkj1b.AppUser?>(
+        'user',
+        'getProfile',
+        {'userId': userId},
+      );
+
+  /// Updates profile details (display name, bio, photo URL)
+  _ida.Future<_izmwkj1b.AppUser?> updateProfile({
+    required int userId,
+    String? displayName,
+    String? bio,
+    String? photoUrl,
+  }) => caller.callServerEndpoint<_izmwkj1b.AppUser?>(
+    'user',
+    'updateProfile',
+    {
+      'userId': userId,
+      'displayName': displayName,
+      'bio': bio,
+      'photoUrl': photoUrl,
+    },
+  );
+
+  /// Toggles push notifications setting
+  _ida.Future<_izmwkj1b.AppUser?> toggleNotifications({
+    required int userId,
+    required bool enabled,
+  }) => caller.callServerEndpoint<_izmwkj1b.AppUser?>(
+    'user',
+    'toggleNotifications',
+    {
+      'userId': userId,
+      'enabled': enabled,
+    },
+  );
+
+  /// Searches for registered users by phone number or display name
+  _ida.Future<List<_izmwkj1b.AppUser>> searchUsers(String query) =>
+      caller.callServerEndpoint<List<_izmwkj1b.AppUser>>(
+        'user',
+        'searchUsers',
+        {'query': query},
+      );
+
+  /// Matches device contacts (phone numbers) against registered users
+  _ida.Future<List<_izmwkj1b.AppUser>> syncContacts(
+    List<String> phoneNumbers,
+  ) => caller.callServerEndpoint<List<_izmwkj1b.AppUser>>(
+    'user',
+    'syncContacts',
+    {'phoneNumbers': phoneNumbers},
+  );
+
+  /// Returns a secure upload description path for uploading an avatar photo
+  _ida.Future<String?> getAvatarUploadDescription(String fileName) =>
+      caller.callServerEndpoint<String?>(
+        'user',
+        'getAvatarUploadDescription',
+        {'fileName': fileName},
+      );
+
+  /// Resolves the public URL for a given storage path
+  _ida.Future<String> getPublicAvatarUrl(String path) =>
+      caller.callServerEndpoint<String>(
+        'user',
+        'getPublicAvatarUrl',
+        {'path': path},
+      );
 }
 
 class Modules {
@@ -305,25 +535,37 @@ class Client extends _isc.ServerpodClientShared {
              disconnectStreamsOnLostInternetConnection,
          httpClientOverride: httpClientOverride,
        ) {
+    auth = EndpointAuth(this);
     emailIdp = EndpointEmailIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
+    chat = EndpointChat(this);
     localization = EndpointLocalization(this);
+    user = EndpointUser(this);
     modules = Modules(this);
   }
+
+  late final EndpointAuth auth;
 
   late final EndpointEmailIdp emailIdp;
 
   late final EndpointJwtRefresh jwtRefresh;
 
+  late final EndpointChat chat;
+
   late final EndpointLocalization localization;
+
+  late final EndpointUser user;
 
   late final Modules modules;
 
   @override
   Map<String, _isc.EndpointRef> get endpointRefLookup => {
+    'auth': auth,
     'emailIdp': emailIdp,
     'jwtRefresh': jwtRefresh,
+    'chat': chat,
     'localization': localization,
+    'user': user,
   };
 
   @override

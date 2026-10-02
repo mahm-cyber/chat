@@ -1,0 +1,9 @@
+class: ChatEvent
+fields:
+  type: String
+  conversationId: int
+  senderId: int
+  message: MessageModel?
+  messageId: int?
+  isTyping: bool?
+  timestamp: DateTime

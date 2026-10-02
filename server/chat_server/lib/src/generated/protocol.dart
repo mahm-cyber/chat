@@ -11,17 +11,22 @@
 // ignore_for_file: dead_code, unnecessary_type_check
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:chat_server/src/generated/chat/conversation.dart' as _iqe7dzhy;
+import 'package:chat_server/src/generated/chat/message.dart' as _igfn9lcz;
+import 'package:chat_server/src/generated/users/app_user.dart' as _i418fay9;
 import 'package:serverpod/protocol.dart' as _isp;
 import 'package:serverpod/serverpod.dart' as _is;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _iacs;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _iais;
+import 'chat/chat_event.dart' as _io33wvg0;
 import 'chat/conversation.dart' as _isvwrlyz;
 import 'chat/message.dart' as _iz1t3vul;
 import 'localization/app_translation.dart' as _ipgqyns3;
 import 'localization/translation_bundle.dart' as _ih31lup6;
 import 'users/app_user.dart' as _iczy18ft;
+export 'chat/chat_event.dart';
 export 'chat/conversation.dart';
 export 'chat/message.dart';
 export 'localization/app_translation.dart';
@@ -414,6 +419,9 @@ class Protocol extends _is.DatabaseSerializationManager {
       }
     }
 
+    if (t == _io33wvg0.ChatEvent) {
+      return _io33wvg0.ChatEvent.fromJson(data) as T;
+    }
     if (t == _isvwrlyz.ConversationModel) {
       return _isvwrlyz.ConversationModel.fromJson(data) as T;
     }
@@ -428,6 +436,9 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (t == _iczy18ft.AppUser) {
       return _iczy18ft.AppUser.fromJson(data) as T;
+    }
+    if (t == _is.getType<_io33wvg0.ChatEvent?>()) {
+      return (data != null ? _io33wvg0.ChatEvent.fromJson(data) : null) as T;
     }
     if (t == _is.getType<_isvwrlyz.ConversationModel?>()) {
       return (data != null ? _isvwrlyz.ConversationModel.fromJson(data) : null)
@@ -462,6 +473,33 @@ class Protocol extends _is.DatabaseSerializationManager {
           )
           as T;
     }
+    if (t == List<_iqe7dzhy.ConversationModel>) {
+      return (data as List)
+              .map((e) => deserialize<_iqe7dzhy.ConversationModel>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_igfn9lcz.MessageModel>) {
+      return (data as List)
+              .map((e) => deserialize<_igfn9lcz.MessageModel>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<String>) {
+      return (data as List).map((e) => deserialize<String>(e)).toList() as T;
+    }
+    if (t == _is.getType<List<String>?>()) {
+      return (data != null
+              ? (data as List).map((e) => deserialize<String>(e)).toList()
+              : null)
+          as T;
+    }
+    if (t == List<_i418fay9.AppUser>) {
+      return (data as List)
+              .map((e) => deserialize<_i418fay9.AppUser>(e))
+              .toList()
+          as T;
+    }
     try {
       return _iais.Protocol().deserialize<T>(data, t);
     } on _is.DeserializationTypeNotFoundException catch (_) {}
@@ -476,6 +514,7 @@ class Protocol extends _is.DatabaseSerializationManager {
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
+      _io33wvg0.ChatEvent => 'ChatEvent',
       _isvwrlyz.ConversationModel => 'ConversationModel',
       _iz1t3vul.MessageModel => 'MessageModel',
       _ipgqyns3.AppTranslation => 'AppTranslation',
@@ -495,6 +534,8 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
 
     switch (data) {
+      case _io33wvg0.ChatEvent():
+        return 'ChatEvent';
       case _isvwrlyz.ConversationModel():
         return 'ConversationModel';
       case _iz1t3vul.MessageModel():
@@ -530,6 +571,9 @@ class Protocol extends _is.DatabaseSerializationManager {
     var dataClassName = data['className'];
     if (dataClassName is! String) {
       return super.deserializeByClassName(data);
+    }
+    if (dataClassName == 'ChatEvent') {
+      return deserialize<_io33wvg0.ChatEvent>(data['data']);
     }
     if (dataClassName == 'ConversationModel') {
       return deserialize<_isvwrlyz.ConversationModel>(data['data']);

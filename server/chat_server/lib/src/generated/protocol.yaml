@@ -1,3 +1,6 @@
+auth:
+  - authenticateWithFirebasePhone:
+  - signOut:
 emailIdp:
   - login:
   - startRegistration:
@@ -9,5 +12,22 @@ emailIdp:
   - hasAccount:
 jwtRefresh:
   - refreshAccessToken:
+chat:
+  - getOrCreateConversation:
+  - getConversations:
+  - getMessages:
+  - sendMessage:
+  - markMessageDelivered:
+  - markMessageRead:
+  - sendTypingEvent:
+  - watchConversation:
 localization:
   - getTranslations:
+user:
+  - getProfile:
+  - updateProfile:
+  - toggleNotifications:
+  - searchUsers:
+  - syncContacts:
+  - getAvatarUploadDescription:
+  - getPublicAvatarUrl:
