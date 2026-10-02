@@ -1,4 +1,3 @@
-library domain_models;
 
 // Exceptions
 export 'src/exceptions/domain_exception.dart';

@@ -20,10 +20,10 @@
 # Flutter / Dart / Pub / Jaspr
 **/doc/api/
 **/ios/Flutter/.last_build_id
-.dart_tool/
+**/.dart_tool/
 .flutter-plugins-dependencies
-.pub-cache/
-.pub/
+**/.pub-cache/
+**/.pub/
 build/
 **/build/
 coverage/

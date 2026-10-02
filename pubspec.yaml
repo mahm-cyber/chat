@@ -8,6 +8,11 @@ environment:
 
 workspace:
   - packages/domain_models
+  - packages/key_value_storage
+  - packages/repositories/auth_repository
+  - packages/repositories/chat_repository
+  - packages/repositories/localization_repository
+  - packages/repositories/user_repository
   - server/chat_server
   - server/chat_client
 
