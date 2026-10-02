@@ -97,13 +97,20 @@ packages/domain_models (Pure Dart — depends on nothing)
 - Tailwind CSS utility classes configured via `tailwind.config.js`.
 - Shared design tokens matching Flutter's typography and color palettes.
 
+### localization (Server-Driven)
+- **Zero hardcoded strings in UI:** No string literals in widgets. All user-facing text is accessed via `context.tr('dot.separated.key')` or `tr('key')`.
+- Dynamic translation bundles served by Serverpod backend (`LocalizationEndpoint`) with version tracking.
+- Cache-first offline storage in `key_value_storage` with fallback baseline JSON bundle.
+- Updates push OTA without app store rebuilds.
+
 ---
 
-## 5. UI & Widget Rules (Flutter)
+## 5. UI & Widget Rules (Flutter & Web)
 
 - **Never use raw `Text`** ➔ Use `ChatText` from `component_library`.
 - **Never use raw `Icon`** ➔ Use `ChatIcon` from `component_library`.
 - **Never use raw `GestureDetector` or `InkWell`** ➔ Use `ChatTappable` with a mandatory `testId`.
+- **Never hardcode string literals** ➔ Use `context.tr('key')`. Enforced by `tools/lint_hardcoded_strings.dart`.
 - Every clickable must be registered in the semantics tree (`Semantics.identifier`).
 - Every UI component is a `StatelessWidget` or `StatefulWidget` class in its own file — **no helper methods returning `Widget`**.
 - Extract widgets when a block exceeds ~15 lines, has distinct layout logic, or takes multiple parameters.

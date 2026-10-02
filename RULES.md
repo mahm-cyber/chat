@@ -241,7 +241,51 @@ The backend runs on **Serverpod**, leveraging Dart's async runtime, typed databa
 
 ---
 
-## 8. Testing & DDD Test Case Workflow
+## 8. Server-Driven Localization & Zero Hardcoded Strings
+
+To enable continuous, over-the-air (OTA) updates to text, multi-language expansion, and strict localization consistency across all platforms (Flutter mobile/desktop and Jaspr web):
+
+### 1. Inviolable Rule: Zero Hardcoded Strings in Code
+- **❌ Strictly Forbidden:** Never hardcode user-facing string literals in UI widgets or components:
+  ```dart
+  // ❌ NON-COMPLIANT
+  ChatText('Welcome to Chat')
+  ChatText('Send')
+  button(classes: '...', [text('Submit')])
+  ```
+- **✅ Compliant:** Always resolve user-facing strings through the localization service using dot-notated translation keys:
+  ```dart
+  // ✅ COMPLIANT (Flutter)
+  ChatText(context.tr('auth.welcome_title'))
+  ChatText(context.tr('chat.send_button'))
+
+  // ✅ COMPLIANT (Jaspr Web)
+  button(classes: '...', [text(tr('common.submit'))])
+  ```
+- Any developer or feature violating this will fail the CI gate via `tools/lint_hardcoded_strings.dart`.
+
+### 2. Backend Architecture: Serverpod Localization Module
+- Translations are managed and served dynamically by the Serverpod backend.
+- **Database Model (`server/chat_server/lib/src/models/app_translation.spy.yaml`):**
+  - `locale`: String (e.g. `'en'`, `'ar'`, `'de'`)
+  - `key`: String (dot-notated unique identifier, e.g. `'chat.input.placeholder'`)
+  - `value`: String (localized text, supporting optional interpolation tokens like `{username}`)
+  - `version`: int / hash (tracks updates to prevent redundant network transfers)
+- **Endpoint (`LocalizationEndpoint`):**
+  - `getTranslations(String locale, int? clientVersion)`: Returns the translation bundle dictionary `{ key: value }` alongside the latest version hash.
+  - Supports instant publishing of copy/translation fixes from the server without requiring App Store or Play Store updates.
+
+### 3. Client Architecture: Cache-First Offline Localization
+- Both Flutter and Jaspr clients consume translations through a dedicated `localization_repository`.
+- **Startup Workflow:**
+  1. **Immediate Boot:** On application launch, the client loads cached translations synchronously from `key_value_storage` (Hive / browser storage).
+  2. **Bundled Fallback:** If local cache is empty (first cold launch without network), the client falls back to bundled baseline assets (`assets/l10n/default_fallback_en.json`).
+  3. **Background Sync:** The client queries Serverpod's `LocalizationEndpoint.getTranslations(...)` in the background with the locally stored version hash.
+  4. **Dynamic Update:** If newer translations are returned, the repository updates local storage and triggers a reactive notification (`localeTranslationsProvider`), immediately refreshing active screens without restarting the app.
+
+---
+
+## 9. Testing & DDD Test Case Workflow
 
 We practice a strict **Test-First DDD Workflow**. For every capability:
 
@@ -280,7 +324,7 @@ We practice a strict **Test-First DDD Workflow**. For every capability:
 
 ---
 
-## 9. Melos Tooling & Automated Quality Gates
+## 10. Melos Tooling & Automated Quality Gates
 
 Every developer and CI runner must pass these checks:
 
@@ -296,10 +340,11 @@ melos run analyze          # dart analyze across all packages
 melos run test             # Run all unit and widget tests
 melos run fix              # Automatically apply dart fix
 
-# Design System & Semantic Lint Scanners (Tools)
+# Design System, Semantic, & Localization Lint Scanners (Tools)
 melos run lint:text        # Detect forbidden raw Text widgets
 melos run lint:icon        # Detect forbidden raw Icon widgets
 melos run lint:tappable    # Detect clickables without semantic testIds
+melos run lint:strings     # Detect forbidden hardcoded user-facing strings
 
 # Serverpod Commands
 melos run server:generate  # serverpod generate
@@ -313,16 +358,18 @@ melos run web:serve        # Start Jaspr local dev server
 
 ---
 
-## 10. Summary "Do / Don't" Guide
+## 11. Summary "Do / Don't" Guide
 
 | Area | DO ✅ | DON'T ❌ |
 |---|---|---|
 | **Architecture** | Pure Dart `domain_models` with zero framework dependencies | Import Flutter, Jaspr, or Serverpod into Domain |
 | **Features** | Isolate each screen into `packages/features/<name>` | Import one feature from another feature |
 | **Navigation** | Inject navigation callbacks from `app_router.dart` | Call `context.go()` or import GoRouter in features |
+| **Localization** | Fetch translations dynamically from Serverpod via `context.tr('key')` | Hardcode raw string literals in UI widgets |
 | **Data Models** | Transform RM and CM into Domain Entities via mappers | Expose Serverpod generated classes or Hive models to UI |
 | **Flutter UI** | Use `ChatText`, `ChatIcon`, `ChatTappable` | Use raw `Text`, `Icon`, `GestureDetector`, `InkWell` |
 | **Jaspr UI** | Use Tailwind classes aligned with app design tokens | Use arbitrary ad-hoc inline styles or hardcoded colors |
 | **Testing** | Write DDD unit tests for Entities and Use Cases first | Build UI before domain validation and use cases exist |
 | **Real-Time** | Use Serverpod streaming channels with typed events | Poll HTTP endpoints for new messages |
 | **State** | Use Riverpod Notifiers with immutable state | Use raw `setState` for app business logic |
+

@@ -44,6 +44,9 @@ apps/chat_flutter (Android, iOS, macOS)      apps/chat_web (Jaspr Web + Tailwind
    - ❌ No raw `Text(...)` ➔ Use `ChatText(...)`
    - ❌ No raw `Icon(...)` ➔ Use `ChatIcon(...)`
    - ❌ No raw `GestureDetector` / `InkWell` ➔ Use `ChatTappable(testId: '...', ...)`
+6. **Zero Hardcoded Strings:**
+   - ❌ Never hardcode strings in UI (`ChatText('Hello')`) ➔ Use `context.tr('key')` or `tr('key')`
+   - All strings are served dynamically from Serverpod backend (`LocalizationEndpoint`) with offline caching in `key_value_storage`.
 
 ---
 
@@ -70,6 +73,7 @@ melos run fix              # Run dart fix --apply
 melos run lint:text        # Scan for forbidden raw Text widgets
 melos run lint:icon        # Scan for forbidden raw Icon widgets
 melos run lint:tappable    # Scan for clickables missing semantic testIds
+melos run lint:strings     # Scan for forbidden hardcoded string literals in UI
 
 # Platform Launchers
 # Flutter (Mobile/macOS)
