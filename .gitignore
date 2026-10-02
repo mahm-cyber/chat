@@ -1,0 +1,45 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Flutter / Dart / Pub / Jaspr
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+**/build/
+coverage/
+**/coverage/
+
+# Serverpod
+**/generated/migration/
+config/passwords.yaml
+
+# Web / Node / Tailwind
+node_modules/
+.npm/
+
+# Android Studio / Xcode
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+.kotlin/
+.fvm/
