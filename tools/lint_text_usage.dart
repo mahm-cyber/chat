@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:io';
 
 void main() {
@@ -10,7 +9,7 @@ void main() {
   final textRegex = RegExp(r'(?<![a-zA-Z])Text\s*\(');
   int violationCount = 0;
 
-  log('🔍 Scanning for raw Text widget usages in feature packages and apps...');
+  stdout.writeln('🔍 Scanning for raw Text widget usages in feature packages and apps...');
 
   for (final dir in directoriesToScan) {
     if (!dir.existsSync()) continue;
@@ -54,21 +53,21 @@ void main() {
 
         if (textRegex.hasMatch(line)) {
           violationCount++;
-          log('\n⚠️  Violation #$violationCount:');
-          log('   📁 File: ${file.path}');
-          log('   📍 Line ${i + 1}: "$line"');
-          log('   💡 Recommendation: Replace "Text" with "ChatText" from component_library.');
+          stdout.writeln('\n⚠️  Violation #$violationCount:');
+          stdout.writeln('   📁 File: ${file.path}');
+          stdout.writeln('   📍 Line ${i + 1}: "$line"');
+          stdout.writeln('   💡 Recommendation: Replace "Text" with "ChatText" from component_library.');
         }
       }
     }
   }
 
   if (violationCount > 0) {
-    log('\n❌ Lint check failed: Found $violationCount instances of raw "Text" widgets.');
-    log('Please use "ChatText" instead to maintain design system consistency.');
+    stdout.writeln('\n❌ Lint check failed: Found $violationCount instances of raw "Text" widgets.');
+    stdout.writeln('Please use "ChatText" instead to maintain design system consistency.');
     exit(1);
   } else {
-    log('\n✅ Lint check passed! All widgets conform to using reusable ChatText widgets.');
+    stdout.writeln('\n✅ Lint check passed! All widgets conform to using reusable ChatText widgets.');
     exit(0);
   }
 }

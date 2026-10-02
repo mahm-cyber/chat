@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:io';
 
 void main() {
@@ -15,7 +14,7 @@ void main() {
 
   int violationCount = 0;
 
-  log('🔍 Scanning for hardcoded string literals in UI widgets...');
+  stdout.writeln('🔍 Scanning for hardcoded string literals in UI widgets...');
 
   for (final dir in directoriesToScan) {
     if (!dir.existsSync()) continue;
@@ -45,30 +44,30 @@ void main() {
         if (matchChat != null) {
           final literal = matchChat.group(1);
           violationCount++;
-          log('\n⚠️  Hardcoded String Violation #$violationCount:');
-          log('   📁 File: ${file.path}');
-          log('   📍 Line ${i + 1}: "$line"');
-          log('   ❌ Hardcoded string: $literal');
-          log('   💡 Recommendation: Use context.tr("key") or dynamic server localization.');
+          stdout.writeln('\n⚠️  Hardcoded String Violation #$violationCount:');
+          stdout.writeln('   📁 File: ${file.path}');
+          stdout.writeln('   📍 Line ${i + 1}: "$line"');
+          stdout.writeln('   ❌ Hardcoded string: $literal');
+          stdout.writeln('   💡 Recommendation: Use context.tr("key") or dynamic server localization.');
         } else if (matchJaspr != null && !line.contains('tr(')) {
           final literal = matchJaspr.group(1);
           violationCount++;
-          log('\n⚠️  Hardcoded String Violation #$violationCount:');
-          log('   📁 File: ${file.path}');
-          log('   📍 Line ${i + 1}: "$line"');
-          log('   ❌ Hardcoded string: $literal');
-          log('   💡 Recommendation: Use tr("key") or dynamic server localization.');
+          stdout.writeln('\n⚠️  Hardcoded String Violation #$violationCount:');
+          stdout.writeln('   📁 File: ${file.path}');
+          stdout.writeln('   📍 Line ${i + 1}: "$line"');
+          stdout.writeln('   ❌ Hardcoded string: $literal');
+          stdout.writeln('   💡 Recommendation: Use tr("key") or dynamic server localization.');
         }
       }
     }
   }
 
   if (violationCount > 0) {
-    log('\n❌ Lint check failed: Found $violationCount hardcoded string literals in UI.');
-    log('All UI strings must be retrieved dynamically from Serverpod localization using translation keys.');
+    stdout.writeln('\n❌ Lint check failed: Found $violationCount hardcoded string literals in UI.');
+    stdout.writeln('All UI strings must be retrieved dynamically from Serverpod localization using translation keys.');
     exit(1);
   } else {
-    log('\n✅ Lint check passed! Zero hardcoded UI strings detected.');
+    stdout.writeln('\n✅ Lint check passed! Zero hardcoded UI strings detected.');
     exit(0);
   }
 }

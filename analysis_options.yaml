@@ -1,0 +1,23 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - "**/build/**"
+    - "**/.dart_tool/**"
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/*.mocks.dart"
+    - "**/*.spy.dart"
+    - "**/generated/**"
+    - "tools/**"
+    - "android/**"
+    - "ios/**"
+    - "web/**"
+    - "macos/**"
+
+linter:
+  rules:
+    constant_identifier_names: false
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    avoid_print: true

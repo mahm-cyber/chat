@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:io';
 
 void main() {
@@ -10,7 +9,7 @@ void main() {
   final iconRegex = RegExp(r'(?<![a-zA-Z])Icon\s*\(');
   int violationCount = 0;
 
-  log('🔍 Scanning for raw Icon widget usages in feature packages and apps...');
+  stdout.writeln('🔍 Scanning for raw Icon widget usages in feature packages and apps...');
 
   for (final dir in directoriesToScan) {
     if (!dir.existsSync()) continue;
@@ -36,20 +35,20 @@ void main() {
 
         if (iconRegex.hasMatch(line)) {
           violationCount++;
-          log('\n⚠️  Violation #$violationCount:');
-          log('   📁 File: ${file.path}');
-          log('   📍 Line ${i + 1}: "$line"');
-          log('   💡 Recommendation: Replace "Icon" with "ChatIcon" from component_library.');
+          stdout.writeln('\n⚠️  Violation #$violationCount:');
+          stdout.writeln('   📁 File: ${file.path}');
+          stdout.writeln('   📍 Line ${i + 1}: "$line"');
+          stdout.writeln('   💡 Recommendation: Replace "Icon" with "ChatIcon" from component_library.');
         }
       }
     }
   }
 
   if (violationCount > 0) {
-    log('\n❌ Lint check failed: Found $violationCount instances of raw "Icon" widgets.');
+    stdout.writeln('\n❌ Lint check failed: Found $violationCount instances of raw "Icon" widgets.');
     exit(1);
   } else {
-    log('\n✅ Lint check passed! All widgets conform to using reusable ChatIcon widgets.');
+    stdout.writeln('\n✅ Lint check passed! All widgets conform to using reusable ChatIcon widgets.');
     exit(0);
   }
 }

@@ -1,0 +1,71 @@
+name: chat_app
+
+packages:
+  - apps/**
+  - packages/**
+  - server/**
+
+command:
+  bootstrap:
+    usePubspecOverrides: true
+
+scripts:
+  get:
+    run: melos exec -- "dart pub get"
+    description: Run pub get across all packages.
+
+  build:
+    run: melos exec --concurrency 1 -- "dart run build_runner build --delete-conflicting-outputs"
+    description: Run build_runner in packages that depend on it.
+    packageFilters:
+      dependsOn: build_runner
+
+  build:watch:
+    run: melos exec --concurrency 1 -- "dart run build_runner watch --delete-conflicting-outputs"
+    description: Run build_runner watch in packages that depend on it.
+    packageFilters:
+      dependsOn: build_runner
+
+  analyze:
+    run: melos exec --concurrency 5 -- "dart analyze ."
+    description: Run dart analyze across all packages.
+
+  test:
+    run: melos exec -- "dart test"
+    description: Run unit tests across all Dart packages.
+
+  fix:
+    run: melos exec -- "dart fix --apply"
+    description: Apply automated dart fixes.
+
+  lint:text:
+    run: dart run tools/lint_text_usage.dart
+    description: Scan for forbidden raw Text widgets.
+
+  lint:icon:
+    run: dart run tools/lint_icon_usage.dart
+    description: Scan for forbidden raw Icon widgets.
+
+  lint:tappable:
+    run: dart run tools/lint_tappable_usage.dart
+    description: Scan for clickables missing semantic testIds.
+
+  lint:strings:
+    run: dart run tools/lint_hardcoded_strings.dart
+    description: Scan for forbidden hardcoded user-facing strings in UI widgets.
+
+  server:generate:
+    run: cd server/chat_server && serverpod generate
+    description: Run serverpod generate in chat_server.
+
+  server:run:
+    run: cd server/chat_server && dart bin/main.dart --mode development
+    description: Run local Serverpod backend.
+
+  web:build:
+    run: cd apps/chat_web && jaspr build
+    description: Build Jaspr web application.
+
+  web:serve:
+    run: cd apps/chat_web && jaspr serve
+    description: Run Jaspr web dev server.

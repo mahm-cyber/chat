@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:io';
 
 void main() {
@@ -10,7 +9,7 @@ void main() {
   final clickableRegex = RegExp(r'(?<![a-zA-Z])(GestureDetector|InkWell)\s*\(');
   int violationCount = 0;
 
-  log('🔍 Scanning for raw GestureDetector/InkWell usages without semantic testIds...');
+  stdout.writeln('🔍 Scanning for raw GestureDetector/InkWell usages without semantic testIds...');
 
   for (final dir in directoriesToScan) {
     if (!dir.existsSync()) continue;
@@ -36,20 +35,20 @@ void main() {
 
         if (clickableRegex.hasMatch(line)) {
           violationCount++;
-          log('\n⚠️  Violation #$violationCount:');
-          log('   📁 File: ${file.path}');
-          log('   📍 Line ${i + 1}: "$line"');
-          log('   💡 Recommendation: Replace with "ChatTappable(testId: ...)" from component_library.');
+          stdout.writeln('\n⚠️  Violation #$violationCount:');
+          stdout.writeln('   📁 File: ${file.path}');
+          stdout.writeln('   📍 Line ${i + 1}: "$line"');
+          stdout.writeln('   💡 Recommendation: Replace with "ChatTappable(testId: ...)" from component_library.');
         }
       }
     }
   }
 
   if (violationCount > 0) {
-    log('\n❌ Lint check failed: Found $violationCount instances of raw clickable widgets.');
+    stdout.writeln('\n❌ Lint check failed: Found $violationCount instances of raw clickable widgets.');
     exit(1);
   } else {
-    log('\n✅ Lint check passed! All clickables conform to using ChatTappable with testId.');
+    stdout.writeln('\n✅ Lint check passed! All clickables conform to using ChatTappable with testId.');
     exit(0);
   }
 }
