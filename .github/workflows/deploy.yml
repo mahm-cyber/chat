@@ -16,15 +16,14 @@ jobs:
   # -------------------------------------------------------------
   verify:
     name: Verify Quality Gate & Tests
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Dart & Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.0'
           channel: 'stable'
           cache: true
 
@@ -70,34 +69,30 @@ jobs:
     name: Deploy Serverpod to Cloud Run
     needs: verify
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && secrets.GCP_SA_KEY != ''
     env:
-      REGION: ${{ secrets.GCP_REGION || 'us-central1' }}
-      ARTIFACT_REPO: ${{ secrets.GCP_ARTIFACT_REPO || 'chat-app' }}
-      SERVICE_NAME: ${{ secrets.GCP_SERVICE_NAME || 'chat-server' }}
-      JOB_NAME: ${{ secrets.GCP_JOB_NAME || 'chat-server-migrate' }}
+      REGION: us-central1
+      ARTIFACT_REPO: chat-app
+      SERVICE_NAME: chat-server
+      JOB_NAME: chat-server-migrate
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Google Cloud Auth
-        if: env.GCP_SA_KEY != ''
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Setup gcloud CLI
-        if: env.GCP_SA_KEY != ''
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Configure Docker for Google Artifact Registry
-        if: env.GCP_SA_KEY != ''
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       - name: Build & Tag Docker Container
-        if: env.GCP_SA_KEY != ''
         run: |
           IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
           IMAGE_LATEST="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}:latest"
@@ -112,11 +107,9 @@ jobs:
           docker push "${IMAGE_LATEST}"
 
       - name: Execute Cloud Run Database Migration Job
-        if: env.GCP_SA_KEY != ''
         run: |
           IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
           
-          # Check if migration job exists or create it
           if gcloud run jobs describe ${{ env.JOB_NAME }} --region=${{ env.REGION }} >/dev/null 2>&1; then
             gcloud run jobs update ${{ env.JOB_NAME }} \
               --image="${IMAGE_TAG}" \
@@ -133,11 +126,9 @@ jobs:
               --quiet
           fi
           
-          # Execute migration job and wait for zero exit code
           gcloud run jobs execute ${{ env.JOB_NAME }} --region=${{ env.REGION }} --wait
 
       - name: Deploy Service to Cloud Run
-        if: env.GCP_SA_KEY != ''
         run: |
           IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
           
@@ -162,7 +153,7 @@ jobs:
     name: Deploy Jaspr Web to Firebase Hosting
     needs: verify
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && secrets.FIREBASE_SERVICE_ACCOUNT != ''
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -183,7 +174,6 @@ jobs:
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
-        if: env.FIREBASE_TOKEN != ''
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
@@ -193,12 +183,12 @@ jobs:
           FIREBASE_CLI_EXPERIMENTS: webframeworks
 
   # -------------------------------------------------------------
-  # Job 4: Build Mobile Release Artifacts (Android AAB & iOS IPA)
+  # Job 4: Build Mobile Android Release Artifacts
   # -------------------------------------------------------------
-  build-mobile:
-    name: Build Mobile Release Packages
+  build-android:
+    name: Build Android Release Bundle
     needs: verify
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -212,7 +202,6 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.0'
           channel: 'stable'
           cache: true
 
@@ -226,17 +215,39 @@ jobs:
           cd apps/chat_flutter
           flutter build appbundle --release --no-pub
 
-      - name: Build iOS Archive (Unsigned IPA)
-        run: |
-          cd apps/chat_flutter
-          flutter build ipa --no-codesign --no-pub
-
       - name: Upload Android Release Artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-release-bundle
           path: apps/chat_flutter/build/app/outputs/bundle/release/*.aab
           if-no-files-found: ignore
+
+  # -------------------------------------------------------------
+  # Job 5: Build Mobile iOS Release Artifacts
+  # -------------------------------------------------------------
+  build-ios:
+    name: Build iOS Release Package
+    needs: verify
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Melos & Bootstrap
+        run: |
+          dart pub global activate melos
+          melos bootstrap
+
+      - name: Build iOS Archive (Unsigned IPA)
+        run: |
+          cd apps/chat_flutter
+          flutter build ipa --no-codesign --no-pub
 
       - name: Upload iOS Release Artifact
         uses: actions/upload-artifact@v4
