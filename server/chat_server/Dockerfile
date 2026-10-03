@@ -1,58 +1,52 @@
-# Build from the project root with:
-# docker build -f chat_server/Dockerfile .
+# Multi-stage production Dockerfile for Serverpod on GCP Cloud Run
+# Build from repository root with:
+#   docker build -f server/chat_server/Dockerfile -t chat-server:latest .
 
-# Build stage
-FROM dart:3.12.2 AS build
+FROM dart:stable AS build
 
-# Create a minimal workspace that preserves locked server dependency versions.
 WORKDIR /app
-COPY pubspec.lock .
-COPY chat_server chat_server
-RUN printf '%s\n' \
-  'name: _' \
-  'environment:' \
-  '  sdk: ^3.12.2' \
-  'workspace:' \
-  '  - chat_server' \
-  > pubspec.yaml
+
+# Copy root workspace and server manifests for layer caching
+COPY pubspec.yaml pubspec.lock melos.yaml ./
+COPY server/chat_server/pubspec.yaml server/chat_server/
+COPY server/chat_client/pubspec.yaml server/chat_client/
+COPY packages/domain_models/pubspec.yaml packages/domain_models/
+
+# Resolve dependencies across the workspace
 RUN dart pub get
 
-# Compile the server executable.
-WORKDIR /app/chat_server
-RUN dart build cli --target bin/main.dart --output build
-RUN mv build/bundle/bin/main build/bundle/bin/server
+# Copy source code
+COPY server/chat_server/ server/chat_server/
+COPY server/chat_client/ server/chat_client/
+COPY packages/domain_models/ packages/domain_models/
 
-# Add a fallback for the copy of possibly missing directories.
-RUN mkdir -p config web migrations
+# Compile the native Serverpod server binary
+WORKDIR /app/server/chat_server
+RUN dart compile exe bin/main.dart -o bin/server
 
-# Final stage
-FROM alpine:latest
+# Minimal production runtime stage
+FROM alpine:3.20
+
+RUN apk add --no-cache ca-certificates libstdc++ libc6-compat dumb-init
+
 WORKDIR /app
 
-# Environment variables
 ENV runmode=production
 ENV serverid=default
 ENV logging=normal
 ENV role=monolith
 
-# Copy runtime dependencies
+# Copy runtime dependencies and compiled binary
 COPY --from=build /runtime/ /
+COPY --from=build /app/server/chat_server/bin/server bin/server
+COPY --from=build /app/server/chat_server/config/ config/
+COPY --from=build /app/server/chat_server/web/ web/
+COPY --from=build /app/server/chat_server/migrations/ migrations/
+COPY --from=build /app/server/chat_server/lib/src/generated/protocol.yaml lib/src/generated/protocol.yaml
 
-# Copy compiled server executable and native libraries
-COPY --from=build /app/chat_server/build/bundle/ ./
+# Cloud Run defaults to port 8080
+EXPOSE 8080 8081 8082
 
-# Copy configuration files and resources
-COPY --from=build /app/chat_server/config/ config/
-COPY --from=build /app/chat_server/web/ web/
-COPY --from=build /app/chat_server/migrations/ migrations/
-
-# This file is required to enable the endpoint log filter in Insights.
-COPY --from=build /app/chat_server/lib/src/generated/protocol.yaml lib/src/generated/protocol.yaml
-
-# Expose ports
-EXPOSE 8080
-EXPOSE 8081
-EXPOSE 8082
-
-# Define the entrypoint command
-ENTRYPOINT ./bin/server --mode=$runmode --server-id=$serverid --logging=$logging --role=$role
+# dumb-init handles PID 1 signal forwarding for graceful shutdown
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "./bin/server"]
+CMD ["--mode=production", "--server-id=default", "--logging=normal", "--role=monolith"]

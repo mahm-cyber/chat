@@ -1,0 +1,45 @@
+# Production Serverpod Configuration for Google Cloud Run & Cloud SQL
+#
+# Use this template by substituting environment variables:
+#   envsubst < config/production.template.yaml > config/production.yaml
+
+apiServer:
+  port: 8080
+  publicHost: ${PUBLIC_HOST:-localhost}
+  publicPort: 443
+  publicScheme: https
+
+insightsServer:
+  port: 8081
+  publicHost: ${INSIGHTS_HOST:-localhost}
+  publicPort: 443
+  publicScheme: https
+
+webServer:
+  port: 8082
+  publicHost: ${WEB_HOST:-localhost}
+  publicPort: 443
+  publicScheme: https
+
+database:
+  # When connecting via Cloud SQL Auth Proxy on Cloud Run:
+  # host is the unix domain socket path: /cloudsql/PROJECT_ID:REGION:INSTANCE_NAME
+  # or localhost when Cloud SQL proxy sidecar is used.
+  host: ${DB_HOST:-localhost}
+  port: ${DB_PORT:-5432}
+  name: ${DB_NAME:-chat_app}
+  user: ${DB_USER:-postgres}
+  requireSsl: ${DB_REQUIRE_SSL:-false}
+  isUnixSocket: ${DB_IS_UNIX_SOCKET:-false}
+
+redis:
+  enabled: ${REDIS_ENABLED:-false}
+  host: ${REDIS_HOST:-localhost}
+  port: ${REDIS_PORT:-6379}
+
+maxRequestSize: 524288
+
+sessionLogs:
+  persistentEnabled: true
+  consoleEnabled: true
+  consoleLogFormat: text

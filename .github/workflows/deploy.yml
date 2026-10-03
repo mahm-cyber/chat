@@ -1,0 +1,246 @@
+name: Fullstack Production Deployment
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # -------------------------------------------------------------
+  # Job 1: Quality Gate & Automated Testing
+  # -------------------------------------------------------------
+  verify:
+    name: Verify Quality Gate & Tests
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Dart & Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Melos
+        run: dart pub global activate melos
+
+      - name: Bootstrap Monorepo
+        run: melos bootstrap
+
+      - name: Run AST Linter: Text Usage
+        run: dart run tools/lint_text_usage.dart
+
+      - name: Run AST Linter: Icon Usage
+        run: dart run tools/lint_icon_usage.dart
+
+      - name: Run AST Linter: Tappable Usage
+        run: dart run tools/lint_tappable_usage.dart
+
+      - name: Run AST Linter: Hardcoded Strings
+        run: dart run tools/lint_hardcoded_strings.dart
+
+      - name: Run Dart & Flutter Unit/Widget Tests
+        run: |
+          flutter test packages/domain_models
+          flutter test packages/key_value_storage
+          flutter test packages/repositories/localization_repository
+          flutter test packages/repositories/auth_repository
+          flutter test packages/repositories/user_repository
+          flutter test packages/repositories/chat_repository
+          flutter test packages/component_library
+          flutter test packages/features/auth
+          flutter test packages/features/conversation_list
+          flutter test packages/features/chat_room
+          flutter test packages/features/user_profile
+          flutter test packages/features/settings
+          flutter test packages/features/contact_picker
+          flutter test apps/chat_flutter
+
+  # -------------------------------------------------------------
+  # Job 2: Serverpod Backend Deploy to GCP Cloud Run
+  # -------------------------------------------------------------
+  deploy-backend:
+    name: Deploy Serverpod to Cloud Run
+    needs: verify
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    env:
+      REGION: ${{ secrets.GCP_REGION || 'us-central1' }}
+      ARTIFACT_REPO: ${{ secrets.GCP_ARTIFACT_REPO || 'chat-app' }}
+      SERVICE_NAME: ${{ secrets.GCP_SERVICE_NAME || 'chat-server' }}
+      JOB_NAME: ${{ secrets.GCP_JOB_NAME || 'chat-server-migrate' }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Google Cloud Auth
+        if: env.GCP_SA_KEY != ''
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud CLI
+        if: env.GCP_SA_KEY != ''
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Configure Docker for Google Artifact Registry
+        if: env.GCP_SA_KEY != ''
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build & Tag Docker Container
+        if: env.GCP_SA_KEY != ''
+        run: |
+          IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
+          IMAGE_LATEST="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}:latest"
+          
+          docker build \
+            -f server/chat_server/Dockerfile \
+            -t "${IMAGE_TAG}" \
+            -t "${IMAGE_LATEST}" \
+            .
+          
+          docker push "${IMAGE_TAG}"
+          docker push "${IMAGE_LATEST}"
+
+      - name: Execute Cloud Run Database Migration Job
+        if: env.GCP_SA_KEY != ''
+        run: |
+          IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
+          
+          # Check if migration job exists or create it
+          if gcloud run jobs describe ${{ env.JOB_NAME }} --region=${{ env.REGION }} >/dev/null 2>&1; then
+            gcloud run jobs update ${{ env.JOB_NAME }} \
+              --image="${IMAGE_TAG}" \
+              --region=${{ env.REGION }} \
+              --args="--mode=production,--apply-migrations,--role=maintenance" \
+              --set-cloudsql-instances=${{ secrets.CLOUD_SQL_INSTANCE }} \
+              --quiet
+          else
+            gcloud run jobs create ${{ env.JOB_NAME }} \
+              --image="${IMAGE_TAG}" \
+              --region=${{ env.REGION }} \
+              --args="--mode=production,--apply-migrations,--role=maintenance" \
+              --set-cloudsql-instances=${{ secrets.CLOUD_SQL_INSTANCE }} \
+              --quiet
+          fi
+          
+          # Execute migration job and wait for zero exit code
+          gcloud run jobs execute ${{ env.JOB_NAME }} --region=${{ env.REGION }} --wait
+
+      - name: Deploy Service to Cloud Run
+        if: env.GCP_SA_KEY != ''
+        run: |
+          IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
+          
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image="${IMAGE_TAG}" \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=8080 \
+            --min-instances=1 \
+            --max-instances=10 \
+            --concurrency=80 \
+            --session-affinity \
+            --timeout=3600 \
+            --set-cloudsql-instances=${{ secrets.CLOUD_SQL_INSTANCE }} \
+            --quiet
+
+  # -------------------------------------------------------------
+  # Job 3: Jaspr Web Client Deploy to Firebase Hosting
+  # -------------------------------------------------------------
+  deploy-web:
+    name: Deploy Jaspr Web to Firebase Hosting
+    needs: verify
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Dart SDK
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install Jaspr CLI
+        run: dart pub global activate jaspr_cli
+
+      - name: Compile Jaspr Web Application
+        run: |
+          cd apps/chat_web
+          dart pub get
+          jaspr build --verbose
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        if: env.FIREBASE_TOKEN != ''
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          channelId: live
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+        env:
+          FIREBASE_CLI_EXPERIMENTS: webframeworks
+
+  # -------------------------------------------------------------
+  # Job 4: Build Mobile Release Artifacts (Android AAB & iOS IPA)
+  # -------------------------------------------------------------
+  build-mobile:
+    name: Build Mobile Release Packages
+    needs: verify
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Melos & Bootstrap
+        run: |
+          dart pub global activate melos
+          melos bootstrap
+
+      - name: Build Android App Bundle (AAB)
+        run: |
+          cd apps/chat_flutter
+          flutter build appbundle --release --no-pub
+
+      - name: Build iOS Archive (Unsigned IPA)
+        run: |
+          cd apps/chat_flutter
+          flutter build ipa --no-codesign --no-pub
+
+      - name: Upload Android Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-bundle
+          path: apps/chat_flutter/build/app/outputs/bundle/release/*.aab
+          if-no-files-found: ignore
+
+      - name: Upload iOS Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-archive
+          path: apps/chat_flutter/build/ios/archive/*.xcarchive
+          if-no-files-found: ignore
