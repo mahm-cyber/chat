@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: chat-server
+    runtime: docker
+    dockerfilePath: ./server/chat_server/Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    envVars:
+      - key: SERVERPOD_RUN_MODE
+        value: production
+      - key: SERVERPOD_APPLY_MIGRATIONS
+        value: "true"
+      - key: SERVERPOD_API_SERVER_PORT
+        value: "8080"
+      - key: PORT
+        value: "8080"
+      - key: SERVERPOD_DATABASE_HOST
+        fromDatabase:
+          name: chat-db
+          property: host
+      - key: SERVERPOD_DATABASE_PORT
+        fromDatabase:
+          name: chat-db
+          property: port
+      - key: SERVERPOD_DATABASE_NAME
+        fromDatabase:
+          name: chat-db
+          property: database
+      - key: SERVERPOD_DATABASE_USER
+        fromDatabase:
+          name: chat-db
+          property: user
+      - key: SERVERPOD_DATABASE_PASSWORD
+        fromDatabase:
+          name: chat-db
+          property: password
+      - key: SERVERPOD_DATABASE_REQUIRE_SSL
+        value: "false"
+      - key: SERVERPOD_PASSWORD_jwtRefreshTokenHashPepper
+        generateValue: true
+      - key: SERVERPOD_PASSWORD_jwtHmacSha512PrivateKey
+        generateValue: true
+      - key: SERVERPOD_PASSWORD_emailSecretHashPepper
+        generateValue: true
+      - key: SERVERPOD_PASSWORD_serviceSecret
+        generateValue: true
+
+databases:
+  - name: chat-db
+    plan: free
+    region: oregon
+    databaseName: chat_server
+    user: chat_user
