@@ -15,37 +15,37 @@ jobs:
   # Job 1: Quality Gate & Automated Testing
   # -------------------------------------------------------------
   verify:
-    name: Verify Quality Gate & Tests
+    name: "Verify Quality Gate & Tests"
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: "Checkout Repository"
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
+      - name: "Setup Flutter"
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      - name: Install Melos
+      - name: "Install Melos"
         run: dart pub global activate melos
 
-      - name: Bootstrap Monorepo
+      - name: "Bootstrap Monorepo"
         run: melos bootstrap
 
-      - name: Run AST Linter: Text Usage
+      - name: "Run AST Linter (Text Usage)"
         run: dart run tools/lint_text_usage.dart
 
-      - name: Run AST Linter: Icon Usage
+      - name: "Run AST Linter (Icon Usage)"
         run: dart run tools/lint_icon_usage.dart
 
-      - name: Run AST Linter: Tappable Usage
+      - name: "Run AST Linter (Tappable Usage)"
         run: dart run tools/lint_tappable_usage.dart
 
-      - name: Run AST Linter: Hardcoded Strings
+      - name: "Run AST Linter (Hardcoded Strings)"
         run: dart run tools/lint_hardcoded_strings.dart
 
-      - name: Run Dart & Flutter Unit/Widget Tests
+      - name: "Run Dart & Flutter Unit/Widget Tests"
         run: |
           flutter test packages/domain_models
           flutter test packages/key_value_storage
@@ -66,33 +66,38 @@ jobs:
   # Job 2: Serverpod Backend Deploy to GCP Cloud Run
   # -------------------------------------------------------------
   deploy-backend:
-    name: Deploy Serverpod to Cloud Run
+    name: "Deploy Serverpod to Cloud Run"
     needs: verify
     runs-on: ubuntu-latest
-    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && secrets.GCP_SA_KEY != ''
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     env:
       REGION: us-central1
       ARTIFACT_REPO: chat-app
       SERVICE_NAME: chat-server
       JOB_NAME: chat-server-migrate
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
     steps:
-      - name: Checkout Repository
+      - name: "Checkout Repository"
         uses: actions/checkout@v4
 
-      - name: Google Cloud Auth
+      - name: "Google Cloud Auth"
+        if: env.GCP_SA_KEY != ''
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Setup gcloud CLI
+      - name: "Setup gcloud CLI"
+        if: env.GCP_SA_KEY != ''
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Configure Docker for Google Artifact Registry
+      - name: "Configure Docker for Google Artifact Registry"
+        if: env.GCP_SA_KEY != ''
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
-      - name: Build & Tag Docker Container
+      - name: "Build & Tag Docker Container"
+        if: env.GCP_SA_KEY != ''
         run: |
           IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
           IMAGE_LATEST="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}:latest"
@@ -106,7 +111,8 @@ jobs:
           docker push "${IMAGE_TAG}"
           docker push "${IMAGE_LATEST}"
 
-      - name: Execute Cloud Run Database Migration Job
+      - name: "Execute Cloud Run Database Migration Job"
+        if: env.GCP_SA_KEY != ''
         run: |
           IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
           
@@ -128,7 +134,8 @@ jobs:
           
           gcloud run jobs execute ${{ env.JOB_NAME }} --region=${{ env.REGION }} --wait
 
-      - name: Deploy Service to Cloud Run
+      - name: "Deploy Service to Cloud Run"
+        if: env.GCP_SA_KEY != ''
         run: |
           IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
           
@@ -150,29 +157,32 @@ jobs:
   # Job 3: Jaspr Web Client Deploy to Firebase Hosting
   # -------------------------------------------------------------
   deploy-web:
-    name: Deploy Jaspr Web to Firebase Hosting
+    name: "Deploy Jaspr Web to Firebase Hosting"
     needs: verify
     runs-on: ubuntu-latest
-    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && secrets.FIREBASE_SERVICE_ACCOUNT != ''
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
     steps:
-      - name: Checkout Repository
+      - name: "Checkout Repository"
         uses: actions/checkout@v4
 
-      - name: Setup Dart SDK
+      - name: "Setup Dart SDK"
         uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
 
-      - name: Install Jaspr CLI
+      - name: "Install Jaspr CLI"
         run: dart pub global activate jaspr_cli
 
-      - name: Compile Jaspr Web Application
+      - name: "Compile Jaspr Web Application"
         run: |
           cd apps/chat_web
           dart pub get
           jaspr build --verbose
 
-      - name: Deploy to Firebase Hosting
+      - name: "Deploy to Firebase Hosting"
+        if: env.FIREBASE_SERVICE_ACCOUNT != ''
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
@@ -186,36 +196,36 @@ jobs:
   # Job 4: Build Mobile Android Release Artifacts
   # -------------------------------------------------------------
   build-android:
-    name: Build Android Release Bundle
+    name: "Build Android Release Bundle"
     needs: verify
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: "Checkout Repository"
         uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: "Setup Java"
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Flutter
+      - name: "Setup Flutter"
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      - name: Install Melos & Bootstrap
+      - name: "Install Melos & Bootstrap"
         run: |
           dart pub global activate melos
           melos bootstrap
 
-      - name: Build Android App Bundle (AAB)
+      - name: "Build Android App Bundle (AAB)"
         run: |
           cd apps/chat_flutter
           flutter build appbundle --release --no-pub
 
-      - name: Upload Android Release Artifact
+      - name: "Upload Android Release Artifact"
         uses: actions/upload-artifact@v4
         with:
           name: android-release-bundle
@@ -226,30 +236,30 @@ jobs:
   # Job 5: Build Mobile iOS Release Artifacts
   # -------------------------------------------------------------
   build-ios:
-    name: Build iOS Release Package
+    name: "Build iOS Release Package"
     needs: verify
     runs-on: macos-latest
     steps:
-      - name: Checkout Repository
+      - name: "Checkout Repository"
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
+      - name: "Setup Flutter"
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      - name: Install Melos & Bootstrap
+      - name: "Install Melos & Bootstrap"
         run: |
           dart pub global activate melos
           melos bootstrap
 
-      - name: Build iOS Archive (Unsigned IPA)
+      - name: "Build iOS Archive (Unsigned IPA)"
         run: |
           cd apps/chat_flutter
           flutter build ipa --no-codesign --no-pub
 
-      - name: Upload iOS Release Artifact
+      - name: "Upload iOS Release Artifact"
         uses: actions/upload-artifact@v4
         with:
           name: ios-release-archive
