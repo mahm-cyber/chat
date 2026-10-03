@@ -95,6 +95,9 @@ jobs:
       - name: "Configure Docker for Google Artifact Registry"
         if: env.GCP_SA_KEY != ''
         run: |
+          echo "Attempting to enable Artifact Registry and Cloud Run APIs..."
+          gcloud services enable artifactregistry.googleapis.com run.googleapis.com --project=${{ secrets.GCP_PROJECT_ID }} || true
+          
           if ! gcloud artifacts repositories describe ${{ env.ARTIFACT_REPO }} --location=${{ env.REGION }} --project=${{ secrets.GCP_PROJECT_ID }} >/dev/null 2>&1; then
             echo "Creating Artifact Registry repository ${{ env.ARTIFACT_REPO }}..."
             gcloud artifacts repositories create ${{ env.ARTIFACT_REPO }} \
