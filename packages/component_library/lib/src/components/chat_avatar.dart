@@ -10,7 +10,7 @@ class ChatAvatar extends StatelessWidget {
   final bool showOnlineIndicator;
   final Key? testId;
 
-  ChatAvatar({
+  const ChatAvatar({
     String? name,
     String? displayName,
     String? imageUrl,
