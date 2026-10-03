@@ -94,7 +94,17 @@ jobs:
 
       - name: "Configure Docker for Google Artifact Registry"
         if: env.GCP_SA_KEY != ''
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+        run: |
+          if ! gcloud artifacts repositories describe ${{ env.ARTIFACT_REPO }} --location=${{ env.REGION }} --project=${{ secrets.GCP_PROJECT_ID }} >/dev/null 2>&1; then
+            echo "Creating Artifact Registry repository ${{ env.ARTIFACT_REPO }}..."
+            gcloud artifacts repositories create ${{ env.ARTIFACT_REPO }} \
+              --repository-format=docker \
+              --location=${{ env.REGION }} \
+              --description="Docker repository for chat app" \
+              --project=${{ secrets.GCP_PROJECT_ID }} \
+              --quiet
+          fi
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       - name: "Build & Tag Docker Container"
         if: env.GCP_SA_KEY != ''
@@ -115,29 +125,40 @@ jobs:
         if: env.GCP_SA_KEY != ''
         run: |
           IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
+          INSTANCE_NAME=$(echo "${{ secrets.CLOUD_SQL_INSTANCE }}" | awk -F':' '{print $NF}')
           
-          if gcloud run jobs describe ${{ env.JOB_NAME }} --region=${{ env.REGION }} >/dev/null 2>&1; then
-            gcloud run jobs update ${{ env.JOB_NAME }} \
-              --image="${IMAGE_TAG}" \
-              --region=${{ env.REGION }} \
-              --args="--mode=production,--apply-migrations,--role=maintenance" \
-              --set-cloudsql-instances=${{ secrets.CLOUD_SQL_INSTANCE }} \
-              --quiet
+          if [ -n "$INSTANCE_NAME" ] && gcloud sql instances describe "$INSTANCE_NAME" --project=${{ secrets.GCP_PROJECT_ID }} >/dev/null 2>&1; then
+            echo "Cloud SQL instance $INSTANCE_NAME found. Configuring and running migration job..."
+            if gcloud run jobs describe ${{ env.JOB_NAME }} --region=${{ env.REGION }} >/dev/null 2>&1; then
+              gcloud run jobs update ${{ env.JOB_NAME }} \
+                --image="${IMAGE_TAG}" \
+                --region=${{ env.REGION }} \
+                --args="--mode=production,--apply-migrations,--role=maintenance" \
+                --set-cloudsql-instances=${{ secrets.CLOUD_SQL_INSTANCE }} \
+                --quiet
+            else
+              gcloud run jobs create ${{ env.JOB_NAME }} \
+                --image="${IMAGE_TAG}" \
+                --region=${{ env.REGION }} \
+                --args="--mode=production,--apply-migrations,--role=maintenance" \
+                --set-cloudsql-instances=${{ secrets.CLOUD_SQL_INSTANCE }} \
+                --quiet
+            fi
+            gcloud run jobs execute ${{ env.JOB_NAME }} --region=${{ env.REGION }} --wait
           else
-            gcloud run jobs create ${{ env.JOB_NAME }} \
-              --image="${IMAGE_TAG}" \
-              --region=${{ env.REGION }} \
-              --args="--mode=production,--apply-migrations,--role=maintenance" \
-              --set-cloudsql-instances=${{ secrets.CLOUD_SQL_INSTANCE }} \
-              --quiet
+            echo "Cloud SQL instance '$INSTANCE_NAME' not found or not yet provisioned. Skipping migrations."
           fi
-          
-          gcloud run jobs execute ${{ env.JOB_NAME }} --region=${{ env.REGION }} --wait
 
       - name: "Deploy Service to Cloud Run"
         if: env.GCP_SA_KEY != ''
         run: |
           IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
+          INSTANCE_NAME=$(echo "${{ secrets.CLOUD_SQL_INSTANCE }}" | awk -F':' '{print $NF}')
+          
+          SQL_ARG=""
+          if [ -n "$INSTANCE_NAME" ] && gcloud sql instances describe "$INSTANCE_NAME" --project=${{ secrets.GCP_PROJECT_ID }} >/dev/null 2>&1; then
+            SQL_ARG="--set-cloudsql-instances=${{ secrets.CLOUD_SQL_INSTANCE }}"
+          fi
           
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image="${IMAGE_TAG}" \
@@ -150,7 +171,7 @@ jobs:
             --concurrency=80 \
             --session-affinity \
             --timeout=3600 \
-            --set-cloudsql-instances=${{ secrets.CLOUD_SQL_INSTANCE }} \
+            $SQL_ARG \
             --quiet
 
   # -------------------------------------------------------------
@@ -204,7 +225,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: "Setup Java"
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '17'

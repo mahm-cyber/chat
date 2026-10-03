@@ -4,30 +4,33 @@
 
 FROM dart:stable AS build
 
+# Install build tools required for native C assets compilation (sqlite3, argon2)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# Copy root workspace and server manifests for layer caching
-COPY pubspec.yaml pubspec.lock melos.yaml ./
-COPY server/chat_server/pubspec.yaml server/chat_server/
-COPY server/chat_client/pubspec.yaml server/chat_client/
-COPY packages/domain_models/pubspec.yaml packages/domain_models/
+# Copy server project files
+COPY server/chat_server/ ./
 
-# Resolve dependencies across the workspace
+# Strip out workspace resolution so the server builds as a self-contained Dart package
+RUN sed -i '/resolution: workspace/d' pubspec.yaml
+
+# Resolve dependencies
 RUN dart pub get
 
-# Copy source code
-COPY server/chat_server/ server/chat_server/
-COPY server/chat_client/ server/chat_client/
-COPY packages/domain_models/ packages/domain_models/
+# Compile native Serverpod CLI bundle (includes binary and dynamic native libraries)
+RUN dart build cli -t bin/main.dart -o build/cli
 
-# Compile the native Serverpod server binary
-WORKDIR /app/server/chat_server
-RUN dart compile exe bin/main.dart -o bin/server
+# Production runtime stage based on debian:bookworm-slim (guarantees glibc compatibility)
+FROM debian:bookworm-slim
 
-# Minimal production runtime stage
-FROM alpine:3.20
-
-RUN apk add --no-cache ca-certificates libstdc++ libc6-compat dumb-init
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    dumb-init \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -36,13 +39,16 @@ ENV serverid=default
 ENV logging=normal
 ENV role=monolith
 
-# Copy runtime dependencies and compiled binary
-COPY --from=build /runtime/ /
-COPY --from=build /app/server/chat_server/bin/server bin/server
-COPY --from=build /app/server/chat_server/config/ config/
-COPY --from=build /app/server/chat_server/web/ web/
-COPY --from=build /app/server/chat_server/migrations/ migrations/
-COPY --from=build /app/server/chat_server/lib/src/generated/protocol.yaml lib/src/generated/protocol.yaml
+# Copy runtime bundle (contains bin/main and lib/ with native assets)
+COPY --from=build /app/build/cli/bundle/ /app/
+# Symlink bin/server to bin/main for compatibility
+RUN ln -s /app/bin/main /app/bin/server
+
+# Copy server assets, configuration, migrations, and protocols
+COPY --from=build /app/config/ /app/config/
+COPY --from=build /app/web/ /app/web/
+COPY --from=build /app/migrations/ /app/migrations/
+COPY --from=build /app/lib/src/generated/protocol.yaml /app/lib/src/generated/protocol.yaml
 
 # Cloud Run defaults to port 8080
 EXPOSE 8080 8081 8082
